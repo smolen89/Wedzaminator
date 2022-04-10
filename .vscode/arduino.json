@@ -1,0 +1,6 @@
+{
+    "board": "arduino:avr:micro",
+    "port": "COM3",
+    "programmer": "arduino:avrispmkii",
+    "sketch": "Wedzaminator3000.ino"
+}
