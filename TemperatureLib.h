@@ -27,6 +27,8 @@
             // Constructor
             TemperatureLib(uint8_t sensors_pin);
 
+            DallasTemperature GetDT();
+
             uint8_t targetTemperature;
             uint8_t hysteresis;
             float getTemperature(const uint8_t*);
@@ -35,7 +37,7 @@
             bool isLowTemperature(float);
             bool isNormalTemperature(float);
             bool isHighTemperature(float);
-            void Search();
+            void Initialization();
 
             
 

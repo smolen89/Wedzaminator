@@ -18,6 +18,7 @@ Relay::Relay(uint8_t relay_pin_fan, uint8_t relay_pin_smoke, uint8_t relay_pin_h
     _fanState = false;
     _hot1State = false;
     _hot2State = false;
+    TurnOffAll();
 }
 
 void Relay::TurnOffAll()

@@ -16,7 +16,7 @@ Relay relay(RELAY_PIN_FAN, RELAY_PIN_SMOKE, RELAY_PIN_HOT1, RELAY_PIN_HOT2);
 #define LCD_ROWS 2
 LiquidCrystal_I2C lcd(LCD_ADDR, LCD_COLS, LCD_ROWS);  
 
-#define TEMPERATURE_SENSOR_PIN 5
+#define TEMPERATURE_SENSOR_PIN A2
 TemperatureLib sensorTemp(TEMPERATURE_SENSOR_PIN);
 
 void setup() {
@@ -26,7 +26,8 @@ void setup() {
   Serial.println("Wedzaminator 3000 Mark IV v0.2");  // Potwierdzenie otwarcia portu.
 
   LCD_Setup();
-  sensorTemp.Search();
+  TemperatureSensorsSetup();
+  
 }
 
 void loop() {
@@ -42,6 +43,18 @@ void LCD_Setup(){
   lcd.print("Wedzaminator3000");
   lcd.setCursor(0, 1);
   lcd.print(" v0.1   Mark IV ");
+  delay(3000);
+  lcd.clear();
+}
+
+void TemperatureSensorsSetup(){
+  sensorTemp.Initialization();
+  lcd.setCursor(0,0); 
+  lcd.print("Temp. Res.:   ");
+  lcd.println(sensorTemp.GetDT().getResolution());
+  lcd.setCursor(0, 1);
+  lcd.print("Temp. Count:  ");
+  lcd.println(sensorTemp.GetDT().getDeviceCount());
   delay(3000);
   lcd.clear();
 }
