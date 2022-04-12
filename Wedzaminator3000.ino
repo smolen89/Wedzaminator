@@ -1,5 +1,6 @@
 #include <Wire.h>               // Standardowa biblioteka Arduino
 #include <LiquidCrystal_I2C.h>  // Biblioteki I2C dla LiquidCrystal
+#include <Keypad.h>             // Biblioteka obsługi Keypada
 #include "Relays.h"             // Biblioteka Relays
 #include "TemperatureLib.h"     // Biblioteka DallasTemperature
 
@@ -18,6 +19,16 @@ LiquidCrystal_I2C lcd(LCD_ADDR, LCD_COLS, LCD_ROWS);
 
 #define TEMPERATURE_SENSOR_PIN A2
 TemperatureLib sensorTemp(TEMPERATURE_SENSOR_PIN);
+byte KEYPAD_COL_PIN[4] = { 16, 10,  4,  5 }; //connect to the row pinouts of the keypad
+byte KEYPAD_ROW_PIN[4] = { 19, 18, 15, 14 }; //connect to the column pinouts of the keypad
+char keys[4][4] = {
+  { '1', '2', '3', 'A' }, 
+  { '4', '5', '6', 'B' }, 
+  { '7', '8', '9', 'C' }, 
+  { '*', '0', '#', 'D' }
+};
+Keypad keypad = Keypad( makeKeymap(keys), KEYPAD_ROW_PIN, KEYPAD_COL_PIN, 4, 4 );
+
 
 void setup() {
   // Initializacja Portu Debugowania
@@ -32,7 +43,13 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-
+  char key = keypad.getKey();
+  if (key)
+  {
+    Serial.print("Key pressed: ");
+    Serial.println(key);
+  }
+  
 }
 
 void LCD_Setup(){
