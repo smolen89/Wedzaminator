@@ -3,6 +3,7 @@
 #include <Keypad.h>             // Biblioteka obsługi Keypada
 #include "Relays.h"             // Biblioteka Relays
 #include "TemperatureLib.h"     // Biblioteka DallasTemperature
+#include "Timers.h"             // Biblioteka Timerów
 
 // Definicja Pinów
 #define RELAY_PIN_HOT1 6
@@ -29,21 +30,118 @@ char keys[4][4] = {
 };
 Keypad keypad = Keypad( makeKeymap(keys), KEYPAD_ROW_PIN, KEYPAD_COL_PIN, 4, 4 );
 
+const int numOfScreens = 27;
+int currentScreen = 0;
+
+String screens[numOfScreens][2] =
+{
+  /* 00 */ {"Auto Program", "Start"},           // Wszystkie programy (Drying, Smoking, Baking)
+  /* 01 */ {"Realtime Program", "Start"},       // Jeden program (pytanie czy robić go na timer odliczający czy poprostu żeby sobie leciał)
+  /* 02 */ {"Manual Program", "Start"},         // Typowy manual, wszystko sterowane ręcznie
+
+  /* 03 */ {"Realtime temp", "\337C"},          // Temperatura docelowa
+  /* 04 */ {"Realtime Fan", "state"},           // Stan Nadmuchu
+  /* 05 */ {"Realtime Fan", "sec time"},  
+  /* 06 */ {"Realtime Fan", "sec interval"}, 
+  /* 07 */ {"Realtime Smoke", "state"},
+
+  /* 08 */ {"Drying time", "min"},  
+  /* 09 */ {"Drying temp", "\337C"},  
+  /* 10 */ {"Drying Fan", "state"},  
+  /* 11 */ {"Drying Fan", "sec time"},  
+  /* 12 */ {"Drying Fan", "sec interval"},  
+  /* 13 */ {"Drying Smoke", "state"},
+
+  /* 14 */ {"Smoking time", "min"},  
+  /* 15 */ {"Smoking temp", "\337C"},  
+  /* 16 */ {"Smoking Fan", "state"},  
+  /* 17 */ {"Smoking Fan", "sec time"},  
+  /* 18 */ {"Smoking Fan", "sec interval"},  
+  /* 19 */ {"Smoking Smoke", "state"},
+
+  /* 20 */ {"Baking time", "min"},  
+  /* 21 */ {"Baking temp", "\337C"},  
+  /* 22 */ {"Baking Fan", "state"},  
+  /* 23 */ {"Baking Fan", "sec time"},  
+  /* 24 */ {"Baking Fan", "sec interval"},  
+  /* 25 */ {"Baking Smoke", "state"},
+
+  /* 26 */ {"Hysteresis", "\337C tolerance"},
+};
+long parameters[numOfScreens] = {
+  LOW, LOW, LOW,            // Start Programs
+
+  50, LOW, 0, 0, LOW,       // Realtime Settings
+
+  60 * 1, 40, LOW,  0,  0, LOW,  // Drying Settings
+  60 * 5, 50, LOW, 10, 10, HIGH, // Smoking Settings
+  60 * 1, 80, LOW, 10, 10, LOW,  // Baking Settings
+  3                              // Others
+  };
+
+enum menuStateEnum : byte
+{
+  MainMenu,
+  AutoProgram,
+  RealtimeProgram,
+  Manual
+};
+byte menuState = menuStateEnum::MainMenu;
+
+uint32_t processingTime = 0;
+
+Timer sensorsRefreshTimer;
+Timer lcdRefreshTimer;
+int sensorsRefreshTime = 5;
+int lcdRefreshTime = 1;
+
 
 void setup() {
   // Initializacja Portu Debugowania
   Serial.begin(9600);                                // Otwarcie portu 9600
   delay(1500);                                       // Dodanie opóźnienia 1,5s by debuger mógł zdążyć odebrać sygnał z Arduino
-  Serial.println("Wedzaminator 3000 Mark IV v0.2");  // Potwierdzenie otwarcia portu.
+  Serial.println("Wedzaminator 3000 Mark IV v0.1");  // Potwierdzenie otwarcia portu.
 
   LCD_Setup();
   TemperatureSensorsSetup();
-  
+  TimersSetup();
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
   char key = keypad.getKey();
+
+  switch (menuState)
+  {
+  case menuStateEnum::MainMenu:
+    // Processing Main Menu
+
+    // Keys:
+    // A - currentScreen--
+    // B - currentScreen++
+    if (key == 'A')
+    {
+      if (currentScreen == 0)
+        currentScreen = numOfScreens - 1;
+      else
+        currentScreen--;
+    }
+    else if (key == 'B')
+    {
+      if (currentScreen == numOfScreens - 1)
+        currentScreen = 0;
+      else
+        currentScreen++;
+    }
+    // Display Menu
+    if (key) 
+      DisplayMenu();
+      
+    break;
+  
+  default:
+    break;
+  }
+
   if (key)
   {
     Serial.print("Key pressed: ");
@@ -74,4 +172,59 @@ void TemperatureSensorsSetup(){
   lcd.println(sensorTemp.GetDT().getDeviceCount());
   delay(3000);
   lcd.clear();
+}
+
+void TimersSetup(){
+  lcdRefreshTimer.begin(SECS(lcdRefreshTime));
+  sensorsRefreshTimer.begin(SECS(sensorsRefreshTime));
+}
+
+void DisplayMenu(){
+  lcd.clear();
+  // Display name of a parameter
+  lcd.print(screens[currentScreen][0]);
+  lcd.setCursor(0, 1);
+  
+  // display type of the parameter type
+  switch (currentScreen)
+  {
+    case 0:
+    case 1:
+    case 2:
+      // We not have a parameter
+      break;
+
+    case 4:
+    case 7:
+    case 10:
+    case 13:
+    case 16:
+    case 19:
+    case 22:
+    case 25:
+      // parameter is a State type
+      if (parameters[currentScreen] == 0)
+      {
+        // parameter is OFF state
+        lcd.print(">");
+        lcd.print("Off");
+      }
+      else
+      {
+        // parameter is ON state
+        lcd.print(">");
+        lcd.print("On");
+      }
+      break;
+
+    default:
+      // parameter has a value like temperature or time
+      lcd.print(">");
+      lcd.print(parameters[currentScreen]);
+      break;
+  }
+
+  // Display type of the parameter
+  lcd.print(" ");
+  lcd.print(screens[currentScreen][1]);
 }
