@@ -35,12 +35,12 @@ int currentScreen = 0;
 
 String screens[numOfScreens][2] =
 {
-  /* 00 */ {"Auto Program", "Start"},           // Wszystkie programy (Drying, Smoking, Baking)
-  /* 01 */ {"Realtime Program", "Start"},       // Jeden program (pytanie czy robić go na timer odliczający czy poprostu żeby sobie leciał)
-  /* 02 */ {"Manual Program", "Start"},         // Typowy manual, wszystko sterowane ręcznie
+  /* 00 */ {"Program glowny  ", "-> Rozpocznij <-"},           // Wszystkie programy (Drying, Smoking, Baking)
+  /* 01 */ {"Prog pojedynczy ", "-> Rozpocznij <-"},       // Jeden program (pytanie czy robić go na timer odliczający czy poprostu żeby sobie leciał)
+  /* 02 */ {"Program Reczny  ", "-> Rozpocznij <-"},         // Typowy manual, wszystko sterowane ręcznie
 
-  /* 03 */ {"Realtime temp", "\337C"},          // Temperatura docelowa
-  /* 04 */ {"Realtime Fan", "state"},           // Stan Nadmuchu
+  /* 03 */ {"Realtime temp", "\337C"},              // Temperatura docelowa
+  /* 04 */ {"Realtime Fan", "state"},               // Stan Nadmuchu
   /* 05 */ {"Realtime Fan", "sec time"},  
   /* 06 */ {"Realtime Fan", "sec interval"}, 
   /* 07 */ {"Realtime Smoke", "state"},
@@ -88,6 +88,9 @@ enum menuStateEnum : byte
 };
 byte menuState = menuStateEnum::MainMenu;
 
+char menuNextChar = 'B';
+char menuPrevChar = 'A';
+
 uint32_t processingTime = 0;
 
 Timer sensorsRefreshTimer;
@@ -113,29 +116,29 @@ void loop() {
   switch (menuState)
   {
   case menuStateEnum::MainMenu:
-    // Processing Main Menu
+    // MENU: Main Menu
 
-    // Keys:
-    // A - currentScreen--
-    // B - currentScreen++
-    if (key == 'A')
+    if (key == menuPrevChar)
     {
       if (currentScreen == 0)
         currentScreen = numOfScreens - 1;
+
       else
         currentScreen--;
     }
-    else if (key == 'B')
+    else if (key == menuNextChar)
     {
       if (currentScreen == numOfScreens - 1)
         currentScreen = 0;
+
       else
         currentScreen++;
     }
+
     // Display Menu
     if (key) 
       DisplayMenu();
-      
+    
     break;
   
   default:
@@ -182,10 +185,12 @@ void TimersSetup(){
 void DisplayMenu(){
   lcd.clear();
   // Display name of a parameter
+  // First Line
   lcd.print(screens[currentScreen][0]);
   lcd.setCursor(0, 1);
   
   // display type of the parameter type
+  // Second Line
   switch (currentScreen)
   {
     case 0:
@@ -206,25 +211,27 @@ void DisplayMenu(){
       if (parameters[currentScreen] == 0)
       {
         // parameter is OFF state
-        lcd.print(">");
+        lcd.print("> ");
         lcd.print("Off");
+        lcd.print(" ");
       }
       else
       {
         // parameter is ON state
-        lcd.print(">");
+        lcd.print("> ");
         lcd.print("On");
+        lcd.print(" ");
       }
       break;
 
     default:
       // parameter has a value like temperature or time
-      lcd.print(">");
+      lcd.print("> ");
       lcd.print(parameters[currentScreen]);
+      lcd.print(" ");
       break;
   }
 
   // Display type of the parameter
-  lcd.print(" ");
   lcd.print(screens[currentScreen][1]);
 }
