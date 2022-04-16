@@ -3,7 +3,7 @@
 
     #include <Arduino.h>
     #include <inttypes.h>
-
+    #define MILIS(t) (unsigned long) (t)
     #define SECS(t) (unsigned long) (t * 1000)
     #define MINS(t) SECS(t) * 60
     #define HOURS(t) MINS(t) * 60

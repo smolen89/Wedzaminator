@@ -34,38 +34,38 @@ int currentScreen = 0;
 
 String screens[numOfScreens][2] =
     {
-        /* 00 */ {"Prog. automat.  ", "-> Rozpocznij <-"}, // Wszystkie programy (Drying, Smoking, Baking)
-        /* 01 */ {"Prog. polautomat", "-> Rozpocznij <-"}, // Jeden program (pytanie czy robić go na timer odliczający czy poprostu żeby sobie leciał)
-        /* 02 */ {"Prog. reczny    ", "-> Rozpocznij <-"}, // Typowy manual, wszystko sterowane ręcznie
+        /* 00 */ {"Program automatyczny", "-> Rozpocznij <-"}, // Wszystkie programy (Drying, Smoking, Baking)
+        /* 01 */ {"Program standard", "-> Rozpocznij <-"}, // Jeden program (pytanie czy robić go na timer odliczający czy poprostu żeby sobie leciał)
+        /* 02 */ {"Sterowanie reczne", "-> Rozpocznij <-"}, // Typowy manual, wszystko sterowane ręcznie
 
-        /* 03 */ {"Polauto temper", "\337C"},        // Temperatura docelowa
-        /* 04 */ {"Polauto nadmuch", ""},              // Stan Nadmuchu
-        /* 05 */ {"Polauto nadmuch", "min time"},
-        /* 06 */ {"Polauto nadmuch", "min interval"},
-        /* 07 */ {"Polauto Dym", ""},
+        /* 03 */ {"Standard: Temperatura", "\337C"},        // Temperatura docelowa
+        /* 04 */ {"Standard: Nadmuch", ""},              // Stan Nadmuchu
+        /* 05 */ {"Standard: Czas dzialania nadmuchu", "sec czas"},
+        /* 06 */ {"Standard: Interwal przerwy nadmuchu", "sec interwal"},
+        /* 07 */ {"Standard: Dymiarka", ""},
 
-        /* 08 */ {"Suszenie temper", "min"},
-        /* 09 */ {"Suszenie temp", "\337C"},
-        /* 10 */ {"Suszenie Fan", ""},
-        /* 11 */ {"Suszenie Fan", "min time"},
-        /* 12 */ {"Suszenie Fan", "min interval"},
+        /* 08 */ {"Suszenie czas", "min"},
+        /* 09 */ {"Suszenie temperatura", "\337C"},
+        /* 10 */ {"Suszenie nadmuch", ""},
+        /* 11 */ {"Suszenie nadmuch", "min time"},
+        /* 12 */ {"Suszenie nadmuch", "min interval"},
         /* 13 */ {"Suszenie Smoke", ""},
 
-        /* 14 */ {"Smoking time", "min"},
-        /* 15 */ {"Smoking temp", "\337C"},
-        /* 16 */ {"Smoking Fan", ""},
-        /* 17 */ {"Smoking Fan", "min time"},
-        /* 18 */ {"Smoking Fan", "min interval"},
-        /* 19 */ {"Smoking Smoke", ""},
+        /* 14 */ {"Wedzenie czas", "min"},
+        /* 15 */ {"Wedzenie temperatura", "\337C"},
+        /* 16 */ {"Wedzenie nadmuch", ""},
+        /* 17 */ {"Wedzenie nadmuch", "min time"},
+        /* 18 */ {"Wedzenie nadmuch", "min interval"},
+        /* 19 */ {"Wedzenie Smoke", ""},
 
-        /* 20 */ {"Baking time", "min"},
-        /* 21 */ {"Baking temp", "\337C"},
-        /* 22 */ {"Baking Fan", ""},
-        /* 23 */ {"Baking Fan", "min time"},
-        /* 24 */ {"Baking Fan", "min interval"},
-        /* 25 */ {"Baking Smoke", ""},
+        /* 20 */ {"Pieczenie czas", "min"},
+        /* 21 */ {"Pieczenie temperatura", "\337C"},
+        /* 22 */ {"Pieczenie nadmuch", ""},
+        /* 23 */ {"Pieczenie nadmuch", "min time"},
+        /* 24 */ {"Pieczenie nadmuch", "min interval"},
+        /* 25 */ {"Pieczenie Smoke", ""},
 
-        /* 26 */ {"Hysteresis", "\337C tolerance"}
+        /* 26 */ {"Histereza", "\337C tolerancja"}
 };
 long parameters[numOfScreens] = {
     LOW, LOW, LOW, // Start Programs
@@ -99,7 +99,10 @@ uint32_t processingTime = 0;
 Timer sensorsRefreshTimer;
 Timer lcdRefreshTimer;
 int sensorsRefreshTime = 5;
-int lcdRefreshTime = 1;
+int lcdRefreshTime = 750;
+
+int iPosition = 0;
+bool reversedScrolling = false;
 
 void setup()
 {
@@ -133,17 +136,17 @@ void TemperatureSensorsSetup()
   sensorTemp.Initialization();
   lcd.setCursor(0, 0);
   lcd.print("Temp. Res.:   ");
-  lcd.println(sensorTemp.GetDT().getResolution());
+  lcd.print(sensorTemp.GetDT().getResolution());
   lcd.setCursor(0, 1);
   lcd.print("Temp. Count:  ");
-  lcd.println(sensorTemp.GetDT().getDeviceCount());
+  lcd.print(sensorTemp.GetDT().getDeviceCount());
   delay(3000);
   lcd.clear();
 }
 
 void TimersSetup()
 {
-  lcdRefreshTimer.begin(SECS(lcdRefreshTime));
+  lcdRefreshTimer.begin(MILIS(lcdRefreshTime));
   sensorsRefreshTimer.begin(SECS(sensorsRefreshTime));
 }
 
@@ -159,6 +162,16 @@ void loop()
       {
         mainMenu(key);        // Operacje w głównym menu
         displayMainMenu(); // Wyświetlanie głównego menu
+        iPosition = 0;
+        reversedScrolling = false;
+      }
+      else
+      {
+        if (lcdRefreshTimer.available())
+        {
+          ScrollText();
+          lcdRefreshTimer.restart();
+        }
       }
       break;
 
@@ -295,14 +308,54 @@ void mainMenu(char key)
     }
 }
 
+void lcdClearLine(int lineNun)
+{
+  lcd.setCursor(0, lineNun);
+  lcd.print("               ");
+  lcd.setCursor(0, lineNun);
+}
+
+
+void ScrollText()
+{
+  lcdClearLine(0);
+  for (int index = iPosition; index < iPosition + 16; index++)
+  {
+    lcd.print(screens[currentScreen][0][index]);
+  }
+  
+  if (reversedScrolling == false)
+  {
+    iPosition++;
+    if (iPosition >= (screens[currentScreen][0].length() - 16))
+      reversedScrolling = !reversedScrolling;
+  }
+  else
+  {
+    iPosition--;
+    if (iPosition == 0)
+      reversedScrolling = !reversedScrolling;
+  }
+}
+
 void displayMainMenu()
 {
   lcd.clear();
-  // Wyświetlenie pierwszej lini tj. nazwa parametru
-  // todo: zrobić przewijający tekst
-  lcd.print(screens[currentScreen][0]);
 
-  lcd.setCursor(0,1);   // czas na drugą linijkę
+  // Wyświetlenie pierwszej lini tj. nazwa parametru
+  
+  if (screens[currentScreen][0].length() <= 16)
+  {
+    lcd.print(screens[currentScreen][0]);
+    lcdRefreshTimer.begin(STOP);
+  }
+  else
+  {
+    lcd.print(screens[currentScreen][0]);
+    lcdRefreshTimer.begin(MILIS(lcdRefreshTime));
+  }
+
+  lcdClearLine(1);
   // wyświetlenie drugiej linijki
 
   // Wyświetlenie nazwy (pierwszego człona) parametru
@@ -342,7 +395,7 @@ void displayMainMenu()
   }
 
   // Wyświetlenie typu wartości parametru
-  lcd.print(" ");
+  lcd.print("");
   lcd.print(screens[currentScreen][1]);
 }
 
