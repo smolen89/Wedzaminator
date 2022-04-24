@@ -20,6 +20,7 @@ LiquidCrystal_I2C lcd(LCD_ADDR, LCD_COLS, LCD_ROWS);
 
 #define TEMPERATURE_SENSOR_PIN A2
 TemperatureLib sensorTemp(TEMPERATURE_SENSOR_PIN);
+
 byte KEYPAD_COL_PIN[4] = {16, 10, 4, 5};   // connect to the row pinouts of the keypad
 byte KEYPAD_ROW_PIN[4] = {19, 18, 15, 14}; // connect to the column pinouts of the keypad
 char keys[4][4] = {
@@ -35,11 +36,11 @@ int currentScreen = 0;
 String screens[numOfScreens][2] =
     {
         /* 00 */ {"Program automatyczny", "-> Rozpocznij <-"}, // Wszystkie programy (Drying, Smoking, Baking)
-        /* 01 */ {"Program standard", "-> Rozpocznij <-"}, // Jeden program (pytanie czy robić go na timer odliczający czy poprostu żeby sobie leciał)
-        /* 02 */ {"Sterowanie reczne", "-> Rozpocznij <-"}, // Typowy manual, wszystko sterowane ręcznie
+        /* 01 */ {"Program standard", "-> Rozpocznij <-"},     // Jeden program (pytanie czy robić go na timer odliczający czy poprostu żeby sobie leciał)
+        /* 02 */ {"Sterowanie reczne", "-> Rozpocznij <-"},    // Typowy manual, wszystko sterowane ręcznie
 
-        /* 03 */ {"Standard: Temperatura", "\337C"},        // Temperatura docelowa
-        /* 04 */ {"Standard: Nadmuch", ""},              // Stan Nadmuchu
+        /* 03 */ {"Standard: Temperatura", "\337C"}, // Temperatura docelowa
+        /* 04 */ {"Standard: Nadmuch", ""},          // Stan Nadmuchu
         /* 05 */ {"Standard: Czas dzialania nadmuchu", "sec czas"},
         /* 06 */ {"Standard: Interwal przerwy nadmuchu", "sec interwal"},
         /* 07 */ {"Standard: Dymiarka", ""},
@@ -65,8 +66,7 @@ String screens[numOfScreens][2] =
         /* 24 */ {"Pieczenie nadmuch", "min interval"},
         /* 25 */ {"Pieczenie Smoke", ""},
 
-        /* 26 */ {"Histereza", "\337C tolerancja"}
-};
+        /* 26 */ {"Histereza", "\337C tolerancja"}};
 long parameters[numOfScreens] = {
     LOW, LOW, LOW, // Start Programs
 
@@ -89,10 +89,15 @@ byte menuState = menuStateEnum::MainMenu;
 
 char menuPrevChar = 'A';
 char menuNextChar = 'B';
+
 char menuBackChar = 'C';
 char menuOkChar = 'D';
+
 char menuPlusChar = '#';
 char menuMinusChar = '*';
+
+char menuPlus10Char = '9';
+char menuMinus10Char = '7';
 
 uint32_t processingTime = 0;
 
@@ -114,7 +119,7 @@ void setup()
   LCD_Setup();
   TemperatureSensorsSetup();
   TimersSetup();
-  
+
   displayMainMenu();
 }
 
@@ -152,161 +157,175 @@ void TimersSetup()
 
 void loop()
 {
+  // Pubranie do pamięci wartości wciśnięcia przycisku z keypada
   char key = keypad.getKey();
 
+  // Mechanika głównego menu
   switch (menuState)
   {
-    case menuStateEnum::MainMenu:
-      // Główne Menu
-      if (key)
-      {
-        mainMenu(key);        // Operacje w głównym menu
-        displayMainMenu(); // Wyświetlanie głównego menu
-        iPosition = 0;
-        reversedScrolling = false;
-      }
-      else
-      {
-        if (lcdRefreshTimer.available())
-        {
-          ScrollText();
-          lcdRefreshTimer.restart();
-        }
-      }
-      break;
+  // Pozycja głównego menu. W tym miejscu główny Loop jest skierowany na Menu
+  case menuStateEnum::MainMenu:
+    if (key)
+    {
+      // Operacje podczas interakcji w głównym menu
+      mainMenu(key);             // Operacje w głównym menu
+      displayMainMenu();         // Wyświetlanie głównego menu
+      iPosition = 0;             // Zresetowanie pozycji scrollowanego tekstu
+      reversedScrolling = false; // Reset kierunku scrollowanego tekstu
+    }
 
-    case menuStateEnum::Manual:
-      // Program Manualny
-      break;
+    // Wyświetlanie oraz operacje wizualne głównego menu
+    if (lcdRefreshTimer.available())
+    {
+      ScrollText();
+      lcdRefreshTimer.restart();
+    }
 
-    case menuStateEnum::AutoProgram:
-      // Program Automatyczny w pełni (Suszenie, wędzenie i pieczenie)
-      break;
+    break;
 
-    case menuStateEnum::RealtimeProgram:
-      // Program półautomatyczny (znaczy jeden automat)
-      break;
+  case menuStateEnum::Manual:
+    // Program Manualny
+    break;
 
-    default:
-      // W tym wypadku jest jakiś problem z 'menuState' bo nie powinno dość do tego miejsca.
-      break;
+  case menuStateEnum::AutoProgram:
+    // Program Automatyczny w pełni (Suszenie, wędzenie i pieczenie)
+    break;
+
+  case menuStateEnum::RealtimeProgram:
+    // Program półautomatyczny (znaczy jeden automat)
+    break;
+
+  default:
+    // W tym wypadku jest jakiś problem z 'menuState' bo nie powinno dość do tego miejsca.
+    break;
   }
 }
 
 void mainMenu(char key)
 {
-    // Processing Menu
-    if (key == menuPrevChar)
+  // Wciśnięcie przycisku poprzedniej pozycji menu
+  if (key == menuPrevChar)
+  {
+    // currentScreen--
+
+    // Jeśli menu jest w pozcji pierwszej trzeba je cofnąć do ostatniej,
+    // a jeśli nie to do poprzedniej.
+    if (currentScreen == 0)
     {
-      // currentScreen--
-      
-      // Jeśli menu jest w pozcji pierwszej trzeba je cofnąć do ostatniej,
-      // a jeśli nie to do poprzedniej.
-      if (currentScreen == 0)
-      {
-        currentScreen = numOfScreens - 1;
-      }
-      else
-      {
-        currentScreen--;
-      }
+      currentScreen = numOfScreens - 1;
     }
-    else if (key == menuNextChar)
+    else
     {
-      // currentScreen++
-
-      // Jeśli menu jest w pozycji ostatniej, trzeba je przewinąć na początek,
-      // a jeśli nie to do następnej pozycji.
-      if (currentScreen == numOfScreens -1)
-      {
-        currentScreen = 0;
-      }
-      else
-      {
-        currentScreen++;
-      }
+      currentScreen--;
     }
-    else if (key == menuMinusChar)
+  }
+  // Wciśnięcie przycisku następnej pozycji menu
+  else if (key == menuNextChar)
+  {
+    // currentScreen++
+
+    // Jeśli menu jest w pozycji ostatniej, trzeba je przewinąć na początek,
+    // a jeśli nie to do następnej pozycji.
+    if (currentScreen == numOfScreens - 1)
     {
-        switch (currentScreen)
-        {
-        case 0:
-        case 1:
-        case 2:
-          // Start programów, tu nie ma czego przestawiać!!
-          break;
-        case 4:   // ON/OFF
-        case 7:
-        case 10:
-        case 13:
-        case 16:
-        case 19:
-        case 22:
-        case 25:
-          parameters[currentScreen] = LOW;
-          break;
-
-        default:
-          // jeśli jakiś parametr jest już na minimalnej wartości 
-          // to nie można go zmienić na mniejszy
-          if (parameters[currentScreen] > 0)
-            parameters[currentScreen]--;
-
-          break;
-        }
+      currentScreen = 0;
     }
-    else if (key == menuPlusChar)
+    else
     {
-      switch (currentScreen)
-        {
-        case 0:
-        case 1:
-        case 2:
-          // Start programów, tu nie ma czego przestawiać!!
-          break;
-        case 4:   // ON/OFF
-        case 7:
-        case 10:
-        case 13:
-        case 16:
-        case 19:
-        case 22:
-        case 25:
-          parameters[currentScreen] = HIGH;
-          break;
-
-        default:
-          // Tu nie ma górnej granicy
-          parameters[currentScreen]++;
-            
-          break;
-        }
+      currentScreen++;
     }
-    else if (key == menuOkChar)
+  }
+  // Wciśnięcie przycisku zmniejszenia wartości x1
+  else if (key == menuMinusChar)
+  {
+    switch (currentScreen)
     {
-      switch (currentScreen)
-      {
-        case 0:
-          /* START ProgramRunning */
-          break;
+    case 0:
+    case 1:
+    case 2:
+      // Start programów, tu nie ma czego przestawiać!!
+      break;
+    case 4: // ON/OFF
+    case 7:
+    case 10:
+    case 13:
+    case 16:
+    case 19:
+    case 22:
+    case 25:
+      parameters[currentScreen] = LOW;
+      break;
 
-        case 1:
-          /* START RealTimeProgram */
-          break;
+    default:
+      // jeśli jakiś parametr jest już na minimalnej wartości
+      // to nie można go zmienić na mniejszy
+      if (parameters[currentScreen] > 0)
+        parameters[currentScreen]--;
 
-        case 2:
-          /* START Manual */
-          break;
-
-        default:
-          break;
-      }
+      break;
     }
-    else if (key == menuBackChar)
+  }
+  // Wciśnięcie przycisku zwiększenia wartości x1
+  else if (key == menuPlusChar)
+  {
+    switch (currentScreen)
     {
-      // TODO: Bonus
+    case 0:
+    case 1:
+    case 2:
+      // Start programów, tu nie ma czego przestawiać!!
+      break;
+    case 4: // ON/OFF
+    case 7:
+    case 10:
+    case 13:
+    case 16:
+    case 19:
+    case 22:
+    case 25:
+      parameters[currentScreen] = HIGH;
+      break;
+
+    default:
+      // Tu nie ma górnej granicy
+      parameters[currentScreen]++;
+
+      break;
     }
+  }
+  // Wciśnięcie przycisku OK
+  else if (key == menuOkChar)
+  {
+    switch (currentScreen)
+    {
+    case 0:
+      /* START ProgramRunning */
+      break;
+
+    case 1:
+      /* START RealTimeProgram */
+      break;
+
+    case 2:
+      /* START Manual */
+      break;
+
+    default:
+      break;
+    }
+  }
+  // Wciśnięcie przycisku Back
+  else if (key == menuBackChar)
+  {
+    // TODO: Bonus
+  }
 }
+
+void manualProgramMenu(char key) {}
+void autoProgramMenu(char key) {}
+void realtimeProgramMenu(char key) {}
+
+void LoopManualProgram() {}
 
 void lcdClearLine(int lineNun)
 {
@@ -315,7 +334,6 @@ void lcdClearLine(int lineNun)
   lcd.setCursor(0, lineNun);
 }
 
-
 void ScrollText()
 {
   lcdClearLine(0);
@@ -323,7 +341,7 @@ void ScrollText()
   {
     lcd.print(screens[currentScreen][0][index]);
   }
-  
+
   if (reversedScrolling == false)
   {
     iPosition++;
@@ -343,7 +361,7 @@ void displayMainMenu()
   lcd.clear();
 
   // Wyświetlenie pierwszej lini tj. nazwa parametru
-  
+
   if (screens[currentScreen][0].length() <= 16)
   {
     lcd.print(screens[currentScreen][0]);
@@ -361,41 +379,40 @@ void displayMainMenu()
   // Wyświetlenie nazwy (pierwszego człona) parametru
   switch (currentScreen)
   {
-    case 0:
-    case 1:
-    case 2:
-      break;
-    
-      case 4:   // ON/OFF
-      case 7:
-      case 10:
-      case 13:
-      case 16:
-      case 19:
-      case 22:
-      case 25:
-        // parametr to włącznik/wyłącznik
-        if (parameters[currentScreen] == 0)
-        {
-          // parametr jest wyłączony
-          lcd.print("> Off");
-        }
-        else
-        {
-          // Parametr jest włączony
-          lcd.print("> On");
-        }
-      break;
+  case 0:
+  case 1:
+  case 2:
+    break;
 
-    default:
-      // parametr to wartość liczbowa
-      lcd.print("> ");
-      lcd.print(parameters[currentScreen]);
-      break;
+  case 4: // ON/OFF
+  case 7:
+  case 10:
+  case 13:
+  case 16:
+  case 19:
+  case 22:
+  case 25:
+    // parametr to włącznik/wyłącznik
+    if (parameters[currentScreen] == 0)
+    {
+      // parametr jest wyłączony
+      lcd.print("> Off");
+    }
+    else
+    {
+      // Parametr jest włączony
+      lcd.print("> On");
+    }
+    break;
+
+  default:
+    // parametr to wartość liczbowa
+    lcd.print("> ");
+    lcd.print(parameters[currentScreen]);
+    break;
   }
 
   // Wyświetlenie typu wartości parametru
   lcd.print("");
   lcd.print(screens[currentScreen][1]);
 }
-
