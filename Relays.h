@@ -1,21 +1,22 @@
 #ifndef _Relays_h
 
     #define _Relays_h
+    #include <Arduino.h>
 
     class Relay
     {
         private:
-            uint8_t _relay_pin_fan;
-            uint8_t _relay_pin_smoke;
-            uint8_t _relay_pin_hot1;
-            uint8_t _relay_pin_hot2;
+            byte _relay_pin_fan;
+            byte _relay_pin_smoke;
+            byte _relay_pin_hot1;
+            byte _relay_pin_hot2;
             bool _smokeState;
             bool _fanState;
             bool _hot1State;
             bool _hot2State;
         
         public:
-            Relay(uint8_t relay_pin_fan, uint8_t relay_pin_smoke, uint8_t relay_pin_hot1, uint8_t relay_pin_hot2);
+            Relay(byte relay_pin_fan, byte relay_pin_smoke, byte relay_pin_hot1, byte relay_pin_hot2);
 
             void Initialize();
             void TurnOffAll();

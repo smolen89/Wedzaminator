@@ -1,6 +1,6 @@
 #include "Relays.h"
 
-Relay::Relay(uint8_t relay_pin_fan, uint8_t relay_pin_smoke, uint8_t relay_pin_hot1, uint8_t relay_pin_hot2)
+Relay::Relay(byte relay_pin_fan, byte relay_pin_smoke, byte relay_pin_hot1, byte relay_pin_hot2)
 {
     _relay_pin_fan = relay_pin_fan;
     _relay_pin_smoke = relay_pin_smoke;
